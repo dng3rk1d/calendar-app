@@ -948,7 +948,7 @@ const EventCalendar = () => {
 
   return (
     <div className="w-full max-w-6xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Event Calendar Generator</h1>
+      <h1 className="text-2xl font-bold mb-4">Event Calendar</h1>
       
       {/* Hidden file input for import */}
       <input 
