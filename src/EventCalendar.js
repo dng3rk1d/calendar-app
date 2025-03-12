@@ -1166,10 +1166,22 @@ const EventCalendar = () => {
 
             <button
               onClick={exportToICS}
-              className="px-3 py-1 bg-teal-500 text-white rounded hover:bg-teal-600"
+              style={{ 
+                padding: '0.25rem 0.75rem', 
+                backgroundColor: '#38b2ac', 
+                color: 'white',
+                borderRadius: '0.25rem',
+                fontWeight: 'medium'
+            }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = '#319795';
+            }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = '#38b2ac';
+            }}
               title="Export calendar events to .ics file"
             >
-            Save as .ics
+              Save as .ics
             </button>
 
             <button
