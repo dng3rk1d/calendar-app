@@ -1091,13 +1091,7 @@ const EventCalendar = () => {
                   &gt;
                 </button>
 
-                <button
-                  onClick={exportToICS}
-                  className="px-3 py-1 bg-teal-500 text-white rounded hover:bg-teal-600"
-                  title="Export calendar events to .ics file"
-                >
-                Save as .ics
-                </button>
+
               </>
             )}
             
@@ -1169,7 +1163,15 @@ const EventCalendar = () => {
             >
               Import
             </button>
-            
+
+            <button
+              onClick={exportToICS}
+              className="px-3 py-1 bg-teal-500 text-white rounded hover:bg-teal-600"
+              title="Export calendar events to .ics file"
+            >
+            Save as .ics
+            </button>
+
             <button
               onClick={openPrintView}
               className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600"
