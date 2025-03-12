@@ -12,7 +12,8 @@ const EventCalendar = () => {
   const [templates, setTemplates] = useState([]);
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const fileInputRef = useRef(null);
-  
+  const [draggingEvent, setDraggingEvent] = useState(null);
+  const [draggedOverDate, setDraggedOverDate] = useState(null);
   // State for event form
   const [eventTitle, setEventTitle] = useState('');
   const [eventColor, setEventColor] = useState('#3498db');
@@ -283,20 +284,77 @@ const EventCalendar = () => {
     setShowTemplateForm(false);
     alert('Template saved successfully!');
   };
-  
+  // Add these functions near your other event handlers
+  const handleDragStart = (event, e) => {
+    e.stopPropagation();
+    setDraggingEvent(event);
+    e.dataTransfer.setData('text/plain', event.id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDrop = (dropDate, e) => {
+    e.preventDefault();
+    
+    if (!draggingEvent) return;
+    
+    // Convert to Date objects for comparison
+    const oldDate = new Date(draggingEvent.date);
+    const newDate = new Date(dropDate);
+    
+    // Calculate date difference
+    const dateDiff = newDate.getTime() - oldDate.getTime();
+    const daysDiff = dateDiff / (1000 * 3600 * 24);
+    
+    // Update the event
+    setEvents(prevEvents => 
+      prevEvents.map(event => {
+        if (event.id === draggingEvent.id) {
+          // Create new date based on the old one but with updated day
+          const originalDate = new Date(event.date);
+          const updatedDate = new Date(originalDate);
+          updatedDate.setDate(originalDate.getDate() + daysDiff);
+          
+          return {
+            ...event,
+            date: updatedDate.toISOString().split('T')[0]
+          };
+        }
+        return event;
+      })
+    );
+    
+    // Clear drag state
+    setDraggingEvent(null);
+    setDraggedOverDate(null);
+  };
+
+  const handleDragOver = (date, e) => {
+    e.preventDefault();
+    setDraggedOverDate(date);
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDragLeave = () => {
+    setDraggedOverDate(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingEvent(null);
+    setDraggedOverDate(null);
+  };
   // Apply selected template to current form
-  const applyTemplate = () => {
+  function applyTemplate() {
     const template = templates.find(t => t.id.toString() === selectedTemplate);
     if (template) {
       setEventTitle(template.title);
       setEventColor(template.color);
-      
+
       // Only update duration in occurrences
       setOccurrences(occurrences.map(occ => ({
         ...occ,
         duration: template.duration
       })));
-      
+
       setEventFacilitator(template.facilitator || '');
       setEventRoom(template.room || '');
       setEventNotes(template.notes || '');
@@ -655,26 +713,41 @@ const EventCalendar = () => {
                       new Date().getFullYear() === year;
       
       days.push(
-        <div 
-          key={day} 
-          className={`min-h-36 bg-white border border-gray-200 p-2 overflow-y-auto ${isToday ? 'bg-blue-50' : ''}`}
-          onClick={() => {
-            setSelectedDate(new Date(year, month, day));
-            setCurrentView('day');
-          }}
-        >
+        // In the renderMonthView function, update the day cell div:
+          <div 
+            key={day} 
+            className={`min-h-36 bg-white border border-gray-200 p-2 overflow-y-auto ${
+              isToday ? 'bg-blue-50' : ''
+            } ${
+              draggedOverDate === `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}` 
+              ? 'bg-blue-100 border-blue-400' : ''
+            }`}
+            onClick={() => {
+              setSelectedDate(new Date(year, month, day));
+              setCurrentView('day');
+            }}
+            onDragOver={(e) => handleDragOver(`${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`, e)}
+            onDragLeave={handleDragLeave}
+            onDrop={(e) => handleDrop(`${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`, e)}
+          >
           <div className={`font-bold text-sm mb-2 ${isToday ? 'text-blue-600' : ''}`}>{day}</div>
           {dayEvents.map(event => (
-            <div 
-              key={event.id} 
-              className="mb-2 p-2 text-sm rounded overflow-hidden cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
-              style={{ backgroundColor: event.color, color: '#ffffff' }}
-              onClick={(e) => {
-                e.stopPropagation();
-                startEditEvent(event);
-              }}
-              title="Click to edit"
-            >
+            // In the renderMonthView function, update the event div:
+              <div 
+                key={event.id} 
+                className={`mb-2 p-2 text-sm rounded overflow-hidden cursor-pointer hover:opacity-90 transition-opacity shadow-sm ${
+                  draggingEvent && draggingEvent.id === event.id ? 'opacity-50' : ''
+                }`}
+                style={{ backgroundColor: event.color, color: '#ffffff' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  startEditEvent(event);
+                }}
+                draggable={true}
+                onDragStart={(e) => handleDragStart(event, e)}
+                onDragEnd={handleDragEnd}
+                title={draggingEvent && draggingEvent.id === event.id ? "Drop on a date" : "Click to edit, drag to move"}
+              >
               <div className="font-semibold">{event.title}</div>
               <div className="text-xs mt-1">
                 {formatTime(event.startTime)} 
