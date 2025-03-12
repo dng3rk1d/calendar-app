@@ -379,7 +379,92 @@ const EventCalendar = () => {
   const importCalendar = () => {
     fileInputRef.current.click();
   };
-  
+  const exportToICS = () => {
+    // Start building the iCalendar content
+    let icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Calendar App//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH'
+    ];
+
+    // Convert each event to iCalendar format
+    events.forEach(event => {
+      const eventUID = generateUID();
+      const startDate = new Date(`${event.date}T${event.startTime}`);
+      
+      // Calculate end time based on duration
+      const endDate = new Date(startDate);
+      if (event.duration) {
+        endDate.setHours(endDate.getHours() + Math.floor(parseFloat(event.duration)));
+        if (parseFloat(event.duration) % 1 > 0) {
+          endDate.setMinutes(endDate.getMinutes() + 30); // For 0.5 hours
+        }
+      } else {
+        endDate.setHours(endDate.getHours() + 1); // Default to 1 hour
+      }
+      
+      // Format dates for iCalendar (YYYYMMDDTHHmmssZ)
+      const formatDate = (date) => {
+        return date.toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
+      };
+      
+      const formattedStart = formatDate(startDate);
+      const formattedEnd = formatDate(endDate);
+      const now = formatDate(new Date());
+      
+      // Add event to iCalendar content
+      icsContent.push('BEGIN:VEVENT');
+      icsContent.push(`UID:${eventUID}`);
+      icsContent.push(`DTSTAMP:${now}`);
+      icsContent.push(`DTSTART:${formattedStart}`);
+      icsContent.push(`DTEND:${formattedEnd}`);
+      icsContent.push(`SUMMARY:${event.title}`);
+      
+      if (event.facilitator) {
+        icsContent.push(`ORGANIZER:${event.facilitator}`);
+      }
+      
+      if (event.room) {
+        icsContent.push(`LOCATION:${event.room}`);
+      }
+      
+      if (event.notes) {
+        // Format description properly for iCalendar (escape special chars, wrap lines)
+        const escapedNotes = event.notes.replace(/,/g, '\\,').replace(/;/g, '\\;').replace(/\n/g, '\\n');
+        icsContent.push(`DESCRIPTION:${escapedNotes}`);
+      }
+      
+      // Add capacity as an X-property if available
+      if (event.capacity) {
+        icsContent.push(`X-CAPACITY:${event.capacity}`);
+      }
+      
+      // Add event color as an X-property
+      if (event.color) {
+        icsContent.push(`X-COLOR:${event.color.replace('#', '')}`);
+      }
+      
+      icsContent.push('END:VEVENT');
+    });
+    
+    // End iCalendar content
+    icsContent.push('END:VCALENDAR');
+    
+    // Join all lines with CRLF as required by iCalendar spec
+    const icsString = icsContent.join('\r\n') + '\r\n';
+    
+    // Create a Blob and download link
+    const blob = new Blob([icsString], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `calendar-events-${new Date().toISOString().split('T')[0]}.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
   // Handle file input change
   const handleFileInputChange = (e) => {
     const file = e.target.files[0];
@@ -497,7 +582,12 @@ const EventCalendar = () => {
     if (!duration) return '';
     return `${duration} hr${duration !== '1' ? 's' : ''}`;
   };
-  
+  const generateUID = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
   // Open print view in new window
   const openPrintView = () => {
     const printWindow = window.open('', '_blank');
@@ -999,6 +1089,14 @@ const EventCalendar = () => {
                   className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300"
                 >
                   &gt;
+                </button>
+
+                <button
+                  onClick={exportToICS}
+                  className="px-3 py-1 bg-teal-500 text-white rounded hover:bg-teal-600"
+                  title="Export calendar events to .ics file"
+                >
+                Save as .ics
                 </button>
               </>
             )}
