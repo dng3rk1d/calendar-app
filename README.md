@@ -1,3 +1,6 @@
+# Calendar App
+
+This is a simple web-based calendar with event creation and .ics export features. You can try it out [here](https://dng3rk1d.github.io/calendar-app/).
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
